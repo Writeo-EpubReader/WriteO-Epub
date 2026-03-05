@@ -11,11 +11,13 @@ function populateDOM() {
     DOM.fileInputReader = $('file-input-reader');
 
     // Top bar
+    DOM.topBar = $('top-bar');
     DOM.homeBtn = $('home-btn');
     DOM.tocBtn = $('toc-btn');
     DOM.settingsBtn = $('settings-btn');
     DOM.bookmarkBtn = $('bookmark-btn');
     DOM.fullscreenBtn = $('fullscreen-btn');
+    DOM.writeoBtn = $('writeo-btn');
     DOM.bookTitle = $('book-title-display');
     DOM.progressDisplay = $('progress-display');
     DOM.progressFill = $('progress-bar-fill');
@@ -100,6 +102,10 @@ function populateDOM() {
     DOM.toast = $('toast');
     DOM.loadingOverlay = $('loading-overlay');
     DOM.loadingText = $('loading-text');
+    DOM.writeoModal = $('writeo-modal');
+    DOM.writeoModalClose = $('writeo-modal-close');
+    DOM.writeoModalOverlay = $('writeo-modal-overlay');
+    DOM.clearStoredBookBtn = $('clear-stored-book-btn');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -107,5 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     applySettings();
     loadRecentBooks();
+    restoreLastBook();
     bindEvents();
 });

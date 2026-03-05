@@ -1670,3 +1670,219 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
+
+/* ── AUTO-HIDE TOP BAR ─────────────────────────────────── */
+.top-bar {
+  transition: transform 0.35s ease, opacity 0.35s ease, background var(--transition);
+}
+
+.top-bar.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.progress-bar-track {
+  transition: top 0.35s ease;
+}
+
+.progress-bar-track.bar-hidden {
+  top: 0;
+}
+
+/* ── RESTORE BOOK BANNER ────────────────────────────────── */
+.restore-book-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all var(--transition);
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+}
+
+.restore-book-banner:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.28), rgba(59, 130, 246, 0.2));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.25);
+}
+
+.restore-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.restore-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.restore-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.restore-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.restore-arrow {
+  font-size: 1.1rem;
+  color: var(--accent-light);
+  flex-shrink: 0;
+}
+
+/* ── WRITEO ABOUT MODAL ─────────────────────────────────── */
+.writeo-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 500;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.writeo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 501;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.writeo-modal.open {
+  pointer-events: auto;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.writeo-modal.open~.writeo-modal-overlay,
+.writeo-modal-overlay {
+  display: none;
+}
+
+.writeo-modal.open+.writeo-modal-overlay {
+  display: block;
+}
+
+/* Overlay sibling selector workaround: use JS display toggling on overlay */
+.writeo-modal-overlay[style*="display:none"] {
+  display: none !important;
+}
+
+.writeo-modal-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  filter: brightness(1);
+}
+
+.writeo-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.writeo-modal-close:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.writeo-modal-logo {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.writeo-modal-title {
+  font-family: 'Lora', serif;
+  font-size: 1.6rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.writeo-modal-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.writeo-modal-text strong {
+  color: var(--text);
+}
+
+.writeo-modal-cta {
+  display: inline-block;
+  padding: 0.7rem 1.8rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all var(--transition);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+}
+
+.writeo-modal-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(124, 58, 237, 0.5);
+}
+
+.writeo-modal-note {
+  margin-top: 1.25rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

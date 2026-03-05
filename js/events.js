@@ -166,6 +166,32 @@ function bindEvents() {
     // Bookmarks
     DOM.clearBookmarksBtn.addEventListener('click', clearAllBookmarks);
 
+    // Clear stored book
+    if (DOM.clearStoredBookBtn) {
+        DOM.clearStoredBookBtn.addEventListener('click', async () => {
+            const stored = JSON.parse(localStorage.getItem('last_stored_book') || 'null');
+            if (stored) await clearBookFromIDB(stored.id);
+            localStorage.removeItem('last_stored_book');
+            const banner = document.getElementById('restore-stored-book');
+            if (banner) banner.remove();
+            showToast('🗑️ Stored book cleared');
+        });
+    }
+
+    // WriteO modal
+    if (DOM.writeoBtn) {
+        DOM.writeoBtn.addEventListener('click', () => {
+            if (DOM.writeoModal) DOM.writeoModal.classList.add('open');
+            if (DOM.writeoModalOverlay) DOM.writeoModalOverlay.style.display = '';
+        });
+    }
+    if (DOM.writeoModalOverlay) {
+        DOM.writeoModalOverlay.addEventListener('click', closeWriteoModal);
+    }
+    if (DOM.writeoModalClose) {
+        DOM.writeoModalClose.addEventListener('click', closeWriteoModal);
+    }
+
     // Scroll tracking
     DOM.scrollContainer.addEventListener('scroll', onScrollEvent, { passive: true });
 
@@ -183,6 +209,11 @@ function bindEvents() {
     log('events', 'All events bound');
 }
 
+function closeWriteoModal() {
+    if (DOM.writeoModal) DOM.writeoModal.classList.remove('open');
+    if (DOM.writeoModalOverlay) DOM.writeoModalOverlay.style.display = 'none';
+}
+
 // ── File handling ─────────────────────────────────────────────
 function onFileSelected(e) {
     const file = e.target.files[0];
@@ -195,6 +226,7 @@ function onFileSelected(e) {
 
 async function handleEpubFile(file) {
     log('events', '▶ handleEpubFile start', { name: file.name, size: file.size });
+    const willStore = file.size <= MAX_FILE_BYTES;
     showLoading('Parsing EPUB…');
 
     try {
@@ -205,7 +237,6 @@ async function handleEpubFile(file) {
         // ── State — reset book-specific fields before loading new book
         State.book = epub;
         State.bookTitle = epub.title || file.name.replace(/\.epub$/i, '');
-        // FIX: Use full btoa string (no truncation) to avoid key collisions
         State.bookId = 'bk_' + _stableHash(file.name + '|' + file.size);
         State.chapters = epub.chapters;
         State.toc = epub.toc;
@@ -218,33 +249,35 @@ async function handleEpubFile(file) {
         if (State.continuousReader) {
             State.continuousReader.destroy();
             State.continuousReader = null;
-            log('events', 'Previous continuous reader destroyed');
         }
 
         // Load bookmarks for THIS book
         State.bookmarks = loadBookmarks();
-        log('events', 'Bookmarks loaded for this book:', State.bookmarks.length);
         saveRecentBook({ id: State.bookId, title: State.bookTitle, lastChapter: 0 });
 
-        // Show reader UI FIRST so containers are laid out (clientHeight > 0 for book pagination)
+        // ── Persist to IndexedDB ──────────────────────────────────
+        if (willStore) {
+            await saveBookToIDB(State.bookId, file);
+            localStorage.setItem('last_stored_book', JSON.stringify({ id: State.bookId, title: State.bookTitle }));
+        } else {
+            showToast('⚠️ Book is over 50 MB — it won\'t be stored, but you can still read it.');
+        }
+
+        // Show reader UI FIRST so containers are laid out
         showReader();
-        // NOW sync container visibility — reader-screen is visible so heights are measurable
         applyContainerVisibility();
         buildToc();
         renderBookmarksList();
 
         // ── Resume position ───────────────────────────────────────
         const saved = loadAutoBookmark();
-        log('events', 'Auto-bookmark for this book:', saved);
 
         if (State.mode === 'continuous') {
-            log('events', 'Initialising continuous reader');
             State.continuousReader = createVirtualContinuousReader(DOM.scrollContainer, DOM.scrollContent);
             State.continuousReader.init(saved ? Math.min(saved.chapterIndex || 0, State.chapters.length - 1) : 0);
             if (saved) showToast('📖 Resumed from where you left off');
 
         } else if (saved && saved.chapterIndex >= 0 && saved.chapterIndex < State.chapters.length) {
-            log('events', 'Resuming at chapter', saved.chapterIndex);
             await loadChapter(saved.chapterIndex, false);
             if (State.mode === 'scroll') {
                 requestAnimationFrame(() => { DOM.scrollContainer.scrollTop = saved.scrollY || 0; });
@@ -255,7 +288,6 @@ async function handleEpubFile(file) {
             showToast('📖 Resumed from where you left off');
 
         } else {
-            log('events', 'No valid bookmark — loading chapter 0');
             await loadChapter(0);
         }
 
@@ -297,6 +329,58 @@ function onKeyDown(e) {
         case 'f': case 'F': if (!e.ctrlKey) toggleFullscreen(); break;
         case 'b': case 'B': if (!e.ctrlKey) addManualBookmark(); break;
         case 't': case 'T': if (!e.ctrlKey) togglePanel('toc'); break;
-        case 'Escape': closePanel('settings'); closePanel('toc'); break;
+        case 'Escape':
+            closePanel('settings'); closePanel('toc');
+            closeWriteoModal();
+            break;
     }
+}
+
+// ── Restore last stored book (IndexedDB) ──────────────────────
+async function restoreLastBook() {
+    const stored = JSON.parse(localStorage.getItem('last_stored_book') || 'null');
+    if (!stored) return;
+    // Verify it actually exists in IDB before showing the banner
+    const ids = await getAllStoredBookIds();
+    if (!ids.includes(stored.id)) {
+        localStorage.removeItem('last_stored_book');
+        return;
+    }
+    showRestoreBookBanner(stored.title, stored.id);
+}
+
+function showRestoreBookBanner(title, bookId) {
+    let card = document.getElementById('restore-stored-book');
+    if (!card) {
+        card = document.createElement('button');
+        card.id = 'restore-stored-book';
+        card.className = 'restore-book-banner';
+        card.innerHTML = `
+            <span class="restore-icon">📚</span>
+            <span class="restore-info">
+                <span class="restore-title"></span>
+                <span class="restore-sub">Stored in browser — click to resume</span>
+            </span>
+            <span class="restore-arrow">→</span>
+        `;
+        const actions = DOM.welcomeScreen.querySelector('.welcome-actions');
+        if (actions) actions.appendChild(card);
+    }
+    card.querySelector('.restore-title').textContent = title;
+    card.style.display = 'flex';
+    card.onclick = async () => {
+        card.style.opacity = '0.6';
+        card.style.pointerEvents = 'none';
+        showLoading('Restoring book…');
+        const file = await loadBookFromIDB(bookId);
+        hideLoading();
+        if (file) {
+            handleEpubFile(file);
+        } else {
+            showToast('❌ Could not restore book — please load it manually.');
+            card.remove();
+            localStorage.removeItem('last_stored_book');
+        }
+    };
+    if (DOM.recentBooksSection) DOM.recentBooksSection.style.display = '';
 }

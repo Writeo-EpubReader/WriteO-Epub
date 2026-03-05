@@ -29,6 +29,7 @@ function showReader() {
     DOM.readerScreen.style.display = '';
     DOM.bookTitle.textContent = State.bookTitle;
     document.title = State.bookTitle + ' — WriteO Epub Reader';
+    initAutoHideBar();
 }
 
 function goHome() {
@@ -39,6 +40,7 @@ function goHome() {
     closePanel('settings');
     closePanel('toc');
     loadRecentBooks();
+    stopAutoHideBar();
 }
 
 // ── Side panels ───────────────────────────────────────────────
@@ -51,12 +53,67 @@ function openPanel(name) {
     const overlay = name === 'toc' ? DOM.tocOverlay : DOM.settingsOverlay;
     panel.classList.add('open');
     overlay.style.display = '';
+    // Bar should stay visible while a panel is open
+    _showBar();
+    clearTimeout(_barHideTimer);
 }
 function closePanel(name) {
     const panel = name === 'toc' ? DOM.tocPanel : DOM.settingsPanel;
     const overlay = name === 'toc' ? DOM.tocOverlay : DOM.settingsOverlay;
     panel.classList.remove('open');
     overlay.style.display = 'none';
+    // Resume auto-hide when panel is closed
+    _scheduleHideBar();
+}
+
+// ── Auto-hide top bar ─────────────────────────────────────────
+let _barHideTimer = null;
+let _barHideActive = false;
+
+function initAutoHideBar() {
+    if (_barHideActive) return;
+    _barHideActive = true;
+    _scheduleHideBar();
+    document.addEventListener('mousemove', _onBarMouseMove, { passive: true });
+    document.addEventListener('touchstart', _onBarTouch, { passive: true });
+}
+
+function stopAutoHideBar() {
+    _barHideActive = false;
+    clearTimeout(_barHideTimer);
+    _showBar();
+    document.removeEventListener('mousemove', _onBarMouseMove);
+    document.removeEventListener('touchstart', _onBarTouch);
+}
+
+function _onBarMouseMove(e) {
+    if (!_barHideActive) return;
+    if (e.clientY < 80) _showBar();
+    _scheduleHideBar();
+}
+function _onBarTouch() {
+    if (!_barHideActive) return;
+    _showBar(); _scheduleHideBar();
+}
+function _scheduleHideBar() {
+    if (!_barHideActive) return;
+    clearTimeout(_barHideTimer);
+    if (!DOM.settingsPanel || !DOM.tocPanel) return;
+    if (DOM.settingsPanel.classList.contains('open') || DOM.tocPanel.classList.contains('open')) return;
+    _barHideTimer = setTimeout(_hideBar, 3000);
+}
+function _showBar() {
+    if (DOM.topBar) DOM.topBar.classList.remove('hidden');
+    const track = document.getElementById('progress-bar-track');
+    if (track) track.classList.remove('bar-hidden');
+}
+function _hideBar() {
+    if (!_barHideActive) return;
+    if (DOM.settingsPanel && DOM.settingsPanel.classList.contains('open')) return;
+    if (DOM.tocPanel && DOM.tocPanel.classList.contains('open')) return;
+    if (DOM.topBar) DOM.topBar.classList.add('hidden');
+    const track = document.getElementById('progress-bar-track');
+    if (track) track.classList.add('bar-hidden');
 }
 
 // ── Table of Contents ─────────────────────────────────────────

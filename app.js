@@ -1,10 +1,71 @@
 /**
  * ============================================================
- * LUMINA READER — app.js  (v2 — expanded themes & customization)
+ * LUMINA READER — app.js  (v3 — IndexedDB persistence, auto-hide bar, WriteO modal)
  * ============================================================
  */
 
 'use strict';
+
+// ─── INDEXEDDB ───────────────────────────────────────────────
+const IDB_NAME = 'writeo_epub_db';
+const IDB_STORE = 'books';
+const IDB_VERSION = 1;
+const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
+
+function openBookDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+async function saveBookToIDB(id, file) {
+  try {
+    const db = await openBookDB();
+    const buf = await file.arrayBuffer();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ buf, name: file.name, size: file.size }, id);
+    return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch (e) { console.warn('IDB save failed:', e); }
+}
+
+async function loadBookFromIDB(id) {
+  try {
+    const db = await openBookDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(id);
+      req.onsuccess = () => {
+        if (!req.result) return resolve(null);
+        const { buf, name } = req.result;
+        resolve(new File([buf], name, { type: 'application/epub+zip' }));
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch (e) { return null; }
+}
+
+async function clearBookFromIDB(id) {
+  try {
+    const db = await openBookDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+  } catch (e) { console.warn('IDB clear failed:', e); }
+}
+
+async function getAllStoredBookIds() {
+  try {
+    const db = await openBookDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).getAllKeys();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch (e) { return []; }
+}
 
 // ─── STATE ──────────────────────────────────────────────────
 const State = {
@@ -125,8 +186,54 @@ const DOM = {
   loadSettings();
   applySettings();
   loadRecentBooks();
+  restoreLastBook();
   bindEvents();
 })();
+
+async function restoreLastBook() {
+  const ids = await getAllStoredBookIds();
+  if (!ids.length) return;
+  // Use the most recently stored key (last item)
+  const lastId = ids[ids.length - 1];
+  const stored = JSON.parse(localStorage.getItem('last_stored_book') || 'null');
+  if (!stored) return;
+  // Show a restore button in the welcome screen
+  showRestoreBookBanner(stored.title, stored.id);
+}
+
+function showRestoreBookBanner(title, bookId) {
+  const section = DOM.recentBooksSection;
+  // Add restore button above recent list
+  let restoreCard = document.getElementById('restore-stored-book');
+  if (!restoreCard) {
+    restoreCard = document.createElement('button');
+    restoreCard.id = 'restore-stored-book';
+    restoreCard.className = 'restore-book-banner';
+    restoreCard.innerHTML = `
+      <span class="restore-icon">📚</span>
+      <span class="restore-info">
+        <span class="restore-title"></span>
+        <span class="restore-sub">Click to resume (stored in browser)</span>
+      </span>
+      <span class="restore-arrow">→</span>
+    `;
+    DOM.welcomeScreen.querySelector('.welcome-actions').appendChild(restoreCard);
+  }
+  restoreCard.querySelector('.restore-title').textContent = title;
+  restoreCard.style.display = 'flex';
+  restoreCard.onclick = async () => {
+    restoreCard.style.opacity = '0.6';
+    restoreCard.style.pointerEvents = 'none';
+    const file = await loadBookFromIDB(bookId);
+    if (file) {
+      handleEpubFile(file);
+    } else {
+      showToast('❌ Could not restore book — please reload it manually.');
+      restoreCard.remove();
+    }
+  };
+  section.style.display = '';
+}
 
 // ─── SETTINGS PERSISTENCE ───────────────────────────────────
 const DEFAULTS = {
@@ -506,6 +613,8 @@ function onFileSelected(e) {
 }
 
 async function handleEpubFile(file) {
+  // 50 MB limit for storage (we still allow reading larger files but skip saving)
+  const willStore = file.size <= MAX_FILE_BYTES;
   showLoading('Parsing EPUB…');
   try {
     const epub = await parseEpub(file);
@@ -517,6 +626,15 @@ async function handleEpubFile(file) {
     State.bookmarks = loadBookmarks();
 
     saveRecentBook({ id: State.bookId, title: State.bookTitle, lastChapter: 0 });
+
+    // Persist to IndexedDB
+    if (willStore) {
+      await saveBookToIDB(State.bookId, file);
+      localStorage.setItem('last_stored_book', JSON.stringify({ id: State.bookId, title: State.bookTitle }));
+    } else {
+      showToast('⚠️ Book is over 50 MB — it won\'t be saved for offline use, but you can still read it.');
+    }
+
     showReader();
     buildToc();
     renderBookmarksList();
@@ -680,14 +798,69 @@ function showReader() {
   DOM.welcomeScreen.style.display = 'none';
   DOM.readerScreen.style.display = '';
   DOM.bookTitle.textContent = State.bookTitle;
-  document.title = State.bookTitle + ' — Lumina Reader';
+  document.title = State.bookTitle + ' — WriteO Epub Reader';
+  initAutoHideBar();
 }
 function goHome() {
   DOM.welcomeScreen.style.display = '';
   DOM.readerScreen.style.display = 'none';
-  document.title = 'Lumina Reader';
+  document.title = 'WriteO Epub Reader';
   closePanel('settings'); closePanel('toc');
   loadRecentBooks();
+  stopAutoHideBar();
+}
+
+// ─── AUTO-HIDE TOP BAR ───────────────────────────────────────
+let _barHideTimer = null;
+let _barHideActive = false;
+
+function initAutoHideBar() {
+  if (_barHideActive) return;
+  _barHideActive = true;
+  _scheduleHideBar();
+  document.addEventListener('mousemove', _onBarMouseMove, { passive: true });
+  document.addEventListener('touchstart', _onBarTouch, { passive: true });
+}
+
+function stopAutoHideBar() {
+  _barHideActive = false;
+  clearTimeout(_barHideTimer);
+  _showBar();
+  document.removeEventListener('mousemove', _onBarMouseMove);
+  document.removeEventListener('touchstart', _onBarTouch);
+}
+
+function _onBarMouseMove(e) {
+  if (!_barHideActive) return;
+  // Always show bar when mouse is near the top
+  if (e.clientY < 80) {
+    _showBar();
+  }
+  _scheduleHideBar();
+}
+
+function _onBarTouch() {
+  if (!_barHideActive) return;
+  _showBar();
+  _scheduleHideBar();
+}
+
+function _scheduleHideBar() {
+  clearTimeout(_barHideTimer);
+  // Don't hide if a panel is open
+  if (DOM.settingsPanel.classList.contains('open') || DOM.tocPanel.classList.contains('open')) return;
+  _barHideTimer = setTimeout(_hideBar, 3000);
+}
+
+function _showBar() {
+  DOM.topBar.classList.remove('hidden');
+  document.getElementById('progress-bar-track').classList.remove('bar-hidden');
+}
+
+function _hideBar() {
+  if (DOM.settingsPanel.classList.contains('open') || DOM.tocPanel.classList.contains('open')) return;
+  DOM.topBar.classList.add('hidden');
+  document.getElementById('progress-bar-track').classList.add('bar-hidden');
 }
 
 // ─── CHAPTERS ────────────────────────────────────────────────
