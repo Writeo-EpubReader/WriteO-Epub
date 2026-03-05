@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ════ PRIMARY SEO ════ -->
+    <title>WriteO Epub Reader — Free Online EPUB Reader by WriteO</title>
+    <meta name="description"
+        content="WriteO Epub Reader is a free, open-source EPUB reader that runs in your browser. Beautiful themes, custom fonts, continuous scroll, bookmarks — no sign-up required. Created by WriteO, the free novel writing platform at writeo.app." />
+    <meta name="keywords"
+        content="free epub reader, epub reader online, epub reader browser, writeo epub reader, writeo, epub viewer, free ebook reader, read epub online, no install epub reader, open source epub reader" />
+    <meta name="author" content="WriteO — writeo.app" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="WriteO Epub Reader — Free Online EPUB Reader" />
+    <meta property="og:description"
+        content="Read your EPUB books in style. Free, open-source, browser-based. No sign-up, no install. By WriteO — the free novel writing platform at writeo.app." />
+    <meta property="og:site_name" content="WriteO Epub Reader" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="WriteO Epub Reader — Free Online EPUB Reader" />
+    <meta name="twitter:description"
+        content="Free browser EPUB reader with themes, fonts, continuous scroll & bookmarks. By WriteO — writeo.app" />
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "WriteO Epub Reader",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web Browser",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "A free, open-source browser-based EPUB reader with customizable themes, fonts, continuous scroll, and bookmarks. Created by WriteO.",
+    "author": { "@type": "Organization", "name": "WriteO", "url": "https://writeo.app" }
+  }
+  </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Source+Sans+3:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Nunito:wght@300;400;600&family=Open+Sans:wght@300;400;600&family=Roboto:ital,wght@0,300;0,400;1,300&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,300;0,400;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="theme-sepia" data-mode="scroll">
+
+    <!-- ========== WELCOME SCREEN ========== -->
+    <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-bg-glow"></div>
+        <div class="welcome-content">
+            <div class="welcome-logo">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                    <rect width="64" height="64" rx="16" fill="url(#logoGrad)" />
+                    <path d="M16 14h20a6 6 0 0 1 6 6v26a6 6 0 0 1-6 6H16V14z" fill="rgba(255,255,255,0.15)" />
+                    <path d="M20 18h16a2 2 0 0 1 2 2v22H20V18z" fill="rgba(255,255,255,0.25)" />
+                    <path d="M22 24h12M22 29h12M22 34h8" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+                    <path d="M36 46c3.314 0 6-2.686 6-6V20c0 1.105.895 2 2 2v20a8 8 0 0 1-8 8v-4z"
+                        fill="rgba(255,255,255,0.2)" />
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#7C3AED" />
+                            <stop offset="1" stop-color="#3B82F6" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="welcome-title">WriteO Epub Reader</h1>
+            <p class="welcome-subtitle">A free, beautiful EPUB reading experience — by <a href="https://writeo.app"
+                    target="_blank" rel="noopener"
+                    style="color:var(--accent-light);text-decoration:none;font-weight:600;">WriteO</a></p>
+
+            <div class="welcome-actions">
+                <label id="load-btn" class="btn-primary" for="file-input">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Open EPUB File
+                </label>
+                <input type="file" id="file-input" accept=".epub" style="display:none" />
+
+                <div id="recent-books-section" class="recent-books-section" style="display:none">
+                    <p class="recent-label">Continue reading</p>
+                    <div id="recent-books-list" class="recent-books-list"></div>
+                </div>
+            </div>
+
+            <div class="welcome-features">
+                <div class="feature-pill">📚 Scroll, Book &amp; Continuous modes</div>
+                <div class="feature-pill">🎨 12 Themes + Custom</div>
+                <div class="feature-pill">🔖 Auto-bookmark</div>
+                <div class="feature-pill">⛶ Fullscreen</div>
+                <div class="feature-pill">🔤 14 Fonts</div>
+            </div>
+
+            <div style="margin-top:1.5rem;font-size:0.8rem;opacity:0.55;">
+                Made with ❤️ by <a href="https://writeo.app" target="_blank" rel="noopener"
+                    style="color:inherit;font-weight:600;">WriteO</a>
+                &nbsp;·&nbsp;
+                <a href="about.html" style="color:inherit;">About WriteO</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MAIN READER ========== -->
+    <div id="reader-screen" class="reader-screen" style="display:none">
+
+        <!-- TOP BAR -->
+        <header id="top-bar" class="top-bar">
+            <div class="top-bar-left">
+                <button id="home-btn" class="icon-btn" title="Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                </button>
+                <button id="toc-btn" class="icon-btn" title="Table of Contents">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="18" x2="15" y2="18" />
+                    </svg>
+                </button>
+                <span id="book-title-display" class="book-title-display"></span>
+            </div>
+            <div class="top-bar-right">
+                <span id="progress-display" class="progress-display"></span>
+                <button id="bookmark-btn" class="icon-btn" title="Bookmark this position">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                    </svg>
+                </button>
+                <button id="fullscreen-btn" class="icon-btn" title="Toggle Fullscreen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 3 21 3 21 9" />
+                        <polyline points="9 21 3 21 3 15" />
+                        <line x1="21" y1="3" x2="14" y2="10" />
+                        <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                </button>
+                <a href="about.html" class="icon-btn" title="About WriteO"
+                    style="text-decoration:none;font-size:0.72rem;font-weight:600;padding:0.3rem 0.6rem;opacity:0.75;">WriteO</a>
+                <button id="settings-btn" class="icon-btn" title="Settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- SIDEBAR: TABLE OF CONTENTS -->
+        <aside id="toc-panel" class="toc-panel">
+            <div class="panel-header">
+                <h3>Contents</h3>
+                <button id="toc-close" class="icon-btn small">✕</button>
+            </div>
+            <nav id="toc-list" class="toc-list"></nav>
+        </aside>
+        <div id="toc-overlay" class="panel-overlay" style="display:none"></div>
+
+        <!-- PROGRESS BAR -->
+        <div id="progress-bar-track" class="progress-bar-track">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+
+        <!-- READING AREA -->
+        <main id="reading-area" class="reading-area">
+
+            <!-- SCROLL MODE CONTAINER -->
+            <div id="scroll-container" class="scroll-container">
+                <div id="scroll-content" class="reader-content"></div>
+            </div>
+
+            <!-- BOOK (PAGINATED) MODE CONTAINER -->
+            <div id="book-container" class="book-container" style="display:none">
+                <button id="prev-page-btn" class="page-turn-btn left" title="Previous page">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                </button>
+                <div id="book-content" class="reader-content book-page"></div>
+                <button id="next-page-btn" class="page-turn-btn right" title="Next page">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                </button>
+            </div>
+
+        </main>
+
+        <!-- BOTTOM CHAPTER NAV -->
+        <div id="chapter-nav" class="chapter-nav">
+            <button id="prev-chapter-btn" class="nav-btn" title="Previous chapter">← Previous</button>
+            <span id="chapter-indicator" class="chapter-indicator"></span>
+            <button id="next-chapter-btn" class="nav-btn" title="Next chapter">Next →</button>
+        </div>
+
+    </div>
+
+    <!-- ========== SETTINGS PANEL ========== -->
+    <div id="settings-overlay" class="panel-overlay" style="display:none"></div>
+    <aside id="settings-panel" class="settings-panel">
+        <div class="panel-header">
+            <h3>Customize</h3>
+            <button id="settings-close" class="icon-btn small">✕</button>
+        </div>
+
+        <!-- TABS -->
+        <div class="settings-tabs">
+            <button class="settings-tab active" data-tab="appearance">🎨 Look</button>
+            <button class="settings-tab" data-tab="text">🔤 Text</button>
+            <button class="settings-tab" data-tab="reading">📖 Reading</button>
+        </div>
+
+        <div class="settings-body">
+
+            <!-- ══ TAB: APPEARANCE ══ -->
+            <div class="tab-content active" id="tab-appearance">
+
+                <!-- Preset Themes -->
+                <div class="settings-group">
+                    <label class="settings-label">Preset Themes</label>
+                    <div class="theme-swatches large-grid">
+                        <button class="theme-swatch" data-theme="theme-dark" title="Dark" style="background:#1a1a2e">
+                            <span style="color:#e0e0f0">Aa</span><small style="color:#8888aa">Dark</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-light" title="Light" style="background:#f0f0f5">
+                            <span style="color:#1a1a2e">Aa</span><small style="color:#777790">Light</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-sepia" title="Sepia" style="background:#f4ecd8">
+                            <span style="color:#3d2b1f">Aa</span><small style="color:#9a7c62">Sepia</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-midnight" title="Midnight"
+                            style="background:#0d1117">
+                            <span style="color:#c9d1d9">Aa</span><small style="color:#6e7681">Midnight</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-forest" title="Forest"
+                            style="background:#111d14">
+                            <span style="color:#b8d9bd">Aa</span><small style="color:#6a9b72">Forest</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-ocean" title="Ocean" style="background:#0a1f30">
+                            <span style="color:#a8d4f0">Aa</span><small style="color:#5b8aaa">Ocean</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-rose" title="Rose" style="background:#1f0d14">
+                            <span style="color:#f0b8cb">Aa</span><small style="color:#a86478">Rose</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-amber" title="Amber" style="background:#fefbe8">
+                            <span style="color:#3d2700">Aa</span><small style="color:#a07020">Amber</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-slate" title="Slate" style="background:#1e2433">
+                            <span style="color:#cdd6f4">Aa</span><small style="color:#6c7086">Slate</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-amoled" title="AMOLED"
+                            style="background:#000000">
+                            <span style="color:#ffffff">Aa</span><small style="color:#555">AMOLED</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-lavender" title="Lavender"
+                            style="background:#f5f0ff">
+                            <span style="color:#2d1b5e">Aa</span><small style="color:#7c5cbf">Lavender</small>
+                        </button>
+                        <button class="theme-swatch" data-theme="theme-moss" title="Moss" style="background:#f0f4ea">
+                            <span style="color:#1e2e12">Aa</span><small style="color:#5a7840">Moss</small>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Theme Builder -->
+                <div class="settings-group">
+                    <label class="settings-label">
+                        Custom Theme
+                        <button id="apply-custom-theme" class="apply-btn">Apply</button>
+                    </label>
+                    <div class="custom-colors">
+                        <div class="color-row">
+                            <label class="color-label">Background</label>
+                            <div class="color-input-wrap">
+                                <input type="color" id="custom-bg" class="color-picker" value="#12121e" />
+                                <input type="text" id="custom-bg-hex" class="hex-input" value="#12121e" maxlength="7"
+                                    placeholder="#rrggbb" />
+                            </div>
+                        </div>
+                        <div class="color-row">
+                            <label class="color-label">Text</label>
+                            <div class="color-input-wrap">
+                                <input type="color" id="custom-text" class="color-picker" value="#e0e0f0" />
+                                <input type="text" id="custom-text-hex" class="hex-input" value="#e0e0f0" maxlength="7"
+                                    placeholder="#rrggbb" />
+                            </div>
+                        </div>
+                        <div class="color-row">
+                            <label class="color-label">Surface</label>
+                            <div class="color-input-wrap">
+                                <input type="color" id="custom-surface" class="color-picker" value="#1c1c30" />
+                                <input type="text" id="custom-surface-hex" class="hex-input" value="#1c1c30"
+                                    maxlength="7" placeholder="#rrggbb" />
+                            </div>
+                        </div>
+                        <div class="color-row">
+                            <label class="color-label">Accent</label>
+                            <div class="color-input-wrap">
+                                <input type="color" id="custom-accent" class="color-picker" value="#7C3AED" />
+                                <input type="text" id="custom-accent-hex" class="hex-input" value="#7C3AED"
+                                    maxlength="7" placeholder="#rrggbb" />
+                            </div>
+                        </div>
+                        <div class="color-row">
+                            <label class="color-label">Muted</label>
+                            <div class="color-input-wrap">
+                                <input type="color" id="custom-muted" class="color-picker" value="#8888aa" />
+                                <input type="text" id="custom-muted-hex" class="hex-input" value="#8888aa" maxlength="7"
+                                    placeholder="#rrggbb" />
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Live preview -->
+                    <div id="theme-preview" class="theme-preview">
+                        <div class="preview-body-text">The quick brown fox jumps over the lazy dog.</div>
+                        <div class="preview-accent-text">Accent · Highlight</div>
+                    </div>
+                </div>
+
+                <!-- Brightness -->
+                <div class="settings-group">
+                    <label class="settings-label">Reader Brightness <span id="brightness-display"
+                            class="value-display">100%</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon">🌙</span>
+                        <input type="range" id="brightness-slider" min="50" max="100" value="100" step="1"
+                            class="slider" />
+                        <span class="slider-icon">☀️</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ══ TAB: TEXT ══ -->
+            <div class="tab-content" id="tab-text">
+
+                <!-- Font Family -->
+                <div class="settings-group">
+                    <label class="settings-label">Font Family</label>
+                    <div class="font-options wide-grid">
+                        <button class="font-btn active" data-font="Lora" style="font-family:'Lora',serif">Lora</button>
+                        <button class="font-btn" data-font="Merriweather"
+                            style="font-family:'Merriweather',serif">Merriweather</button>
+                        <button class="font-btn" data-font="Playfair Display"
+                            style="font-family:'Playfair Display',serif">Playfair</button>
+                        <button class="font-btn" data-font="Crimson Text"
+                            style="font-family:'Crimson Text',serif">Crimson</button>
+                        <button class="font-btn" data-font="EB Garamond"
+                            style="font-family:'EB Garamond',serif">Garamond</button>
+                        <button class="font-btn" data-font="Libre Baskerville"
+                            style="font-family:'Libre Baskerville',serif">Baskerville</button>
+                        <button class="font-btn" data-font="PT Serif" style="font-family:'PT Serif',serif">PT
+                            Serif</button>
+                        <button class="font-btn" data-font="Spectral"
+                            style="font-family:'Spectral',serif">Spectral</button>
+                        <button class="font-btn" data-font="Georgia" style="font-family:Georgia,serif">Georgia</button>
+                        <button class="font-btn" data-font="Source Sans 3"
+                            style="font-family:'Source Sans 3',sans-serif">Source Sans</button>
+                        <button class="font-btn" data-font="Nunito"
+                            style="font-family:'Nunito',sans-serif">Nunito</button>
+                        <button class="font-btn" data-font="Open Sans" style="font-family:'Open Sans',sans-serif">Open
+                            Sans</button>
+                        <button class="font-btn" data-font="Roboto"
+                            style="font-family:'Roboto',sans-serif">Roboto</button>
+                        <button class="font-btn" data-font="Inter" style="font-family:'Inter',sans-serif">Inter</button>
+                    </div>
+                </div>
+
+                <!-- Font Size -->
+                <div class="settings-group">
+                    <label class="settings-label">Text Size <span id="font-size-display"
+                            class="value-display">18px</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon small">A</span>
+                        <input type="range" id="font-size-slider" min="12" max="36" value="18" step="1"
+                            class="slider" />
+                        <span class="slider-icon large">A</span>
+                    </div>
+                </div>
+
+                <!-- Font Weight -->
+                <div class="settings-group">
+                    <label class="settings-label">Font Weight <span id="font-weight-display"
+                            class="value-display">Normal</span></label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn" data-weight="300">Light</button>
+                        <button class="toggle-btn active" data-weight="400">Normal</button>
+                        <button class="toggle-btn" data-weight="500">Medium</button>
+                        <button class="toggle-btn" data-weight="600">Semibold</button>
+                        <button class="toggle-btn" data-weight="700">Bold</button>
+                    </div>
+                </div>
+
+                <!-- Letter Spacing -->
+                <div class="settings-group">
+                    <label class="settings-label">Letter Spacing <span id="letter-spacing-display"
+                            class="value-display">0px</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon">Az</span>
+                        <input type="range" id="letter-spacing-slider" min="-1" max="5" value="0" step="0.5"
+                            class="slider" />
+                        <span class="slider-icon">A·z</span>
+                    </div>
+                </div>
+
+                <!-- Line Height -->
+                <div class="settings-group">
+                    <label class="settings-label">Line Spacing <span id="line-height-display"
+                            class="value-display">1.7</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon" style="font-size:0.7rem">≡</span>
+                        <input type="range" id="line-height-slider" min="1.2" max="2.5" value="1.7" step="0.1"
+                            class="slider" />
+                        <span class="slider-icon" style="font-size:1rem">≡</span>
+                    </div>
+                </div>
+
+                <!-- Paragraph Spacing -->
+                <div class="settings-group">
+                    <label class="settings-label">Paragraph Gap <span id="para-spacing-display"
+                            class="value-display">1em</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon">¶</span>
+                        <input type="range" id="para-spacing-slider" min="0.25" max="3" value="1" step="0.25"
+                            class="slider" />
+                        <span class="slider-icon">¶</span>
+                    </div>
+                </div>
+
+                <!-- Word Spacing -->
+                <div class="settings-group">
+                    <label class="settings-label">Word Spacing <span id="word-spacing-display"
+                            class="value-display">0px</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon" title="Tighter">w·w</span>
+                        <input type="range" id="word-spacing-slider" min="-2" max="16" value="0" step="0.5"
+                            class="slider" />
+                        <span class="slider-icon" title="Wider">w &nbsp; w</span>
+                    </div>
+                </div>
+
+                <!-- Page / Content Width -->
+                <div class="settings-group">
+                    <label class="settings-label">Page Width <span id="content-width-display"
+                            class="value-display">680px</span></label>
+                    <div class="slider-row">
+                        <span class="slider-icon">⟵</span>
+                        <input type="range" id="content-width-slider" min="320" max="1000" value="680" step="20"
+                            class="slider" />
+                        <span class="slider-icon">⟶</span>
+                    </div>
+                </div>
+
+                <!-- Toggles row -->
+                <div class="settings-group inline-group">
+                    <label class="settings-label">First-line Indent</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="text-indent-toggle" />
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+                <div class="settings-group inline-group">
+                    <label class="settings-label">Justify Text</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="justify-toggle" />
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+                <div class="settings-group inline-group">
+                    <label class="settings-label">Italic Style</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="italic-toggle" />
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- ══ TAB: READING ══ -->
+            <div class="tab-content" id="tab-reading">
+
+                <!-- Reading Mode -->
+                <div class="settings-group">
+                    <label class="settings-label">Reading Mode</label>
+                    <div class="toggle-group">
+                        <button id="mode-scroll" class="toggle-btn active" data-mode="scroll">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                                <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                            Scroll
+                        </button>
+                        <button id="mode-continuous" class="toggle-btn" data-mode="continuous">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M4 6h16M4 12h16M4 18h16" />
+                                <polyline points="20 9 23 12 20 15" />
+                            </svg>
+                            Continuous
+                        </button>
+                        <button id="mode-book" class="toggle-btn" data-mode="book">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                            </svg>
+                            Book Pages
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Smooth Scrolling -->
+                <div class="settings-group inline-group">
+                    <label class="settings-label">Smooth Scrolling</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="smooth-scroll-toggle" checked />
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+                <!-- Page Turn Speed -->
+                <div class="settings-group">
+                    <label class="settings-label">Page Turn Speed</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-speed="fast">Fast</button>
+                        <button class="toggle-btn" data-speed="medium">Medium</button>
+                        <button class="toggle-btn" data-speed="slow">Slow</button>
+                    </div>
+                </div>
+
+                <!-- Bookmarks -->
+                <div class="settings-group">
+                    <label class="settings-label">Bookmarks</label>
+                    <div id="bookmarks-list" class="bookmarks-list">
+                        <p class="empty-state">No bookmarks yet.</p>
+                    </div>
+                    <button id="clear-bookmarks-btn" class="btn-danger-small">Clear All Bookmarks</button>
+                </div>
+
+                <!-- Open New Book -->
+                <div class="settings-group">
+                    <label class="settings-label">Book</label>
+                    <label class="btn-secondary full-width" for="file-input-reader">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Open Different Book
+                    </label>
+                    <input type="file" id="file-input-reader" accept=".epub" style="display:none" />
+                </div>
+
+                <!-- Reset -->
+                <div class="settings-group">
+                    <button id="reset-settings-btn" class="btn-danger-small" style="width:100%;text-align:center">↺
+                        Reset All Settings to Default</button>
+                </div>
+
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- ========== TOAST NOTIFICATION ========== -->
+    <div id="toast" class="toast" aria-live="polite"></div>
+
+    <!-- ========== LOADING OVERLAY ========== -->
+    <div id="loading-overlay" class="loading-overlay" style="display:none">
+        <div class="loading-spinner"></div>
+        <p id="loading-text" class="loading-text">Loading book…</p>
+    </div>
+
+    <!-- JSZip for reading ZIP/EPUB files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Lumina Reader modules (order matters — dependencies first) -->
+    <script src="js/logger.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/epub.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/bookmarks.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/reader.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
