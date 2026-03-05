@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://writeo-epubreader.github.io/WriteO-Epub/sitemap.xml

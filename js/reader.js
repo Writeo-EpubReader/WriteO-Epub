@@ -186,8 +186,9 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
     let topSpacer = null;
     let bottomSpacer = null;
     let destroyed = false;
-    const SCROLL_DEBOUNCE = 80;    // ms
-    const LOAD_BUFFER = 1200;  // px from edge before loading next chunk
+    const SCROLL_DEBOUNCE = 100;   // ms
+    const LOAD_BUFFER = 800;        // px from edge before loading next chunk
+    let _isExpanding = false;       // prevent concurrent expand calls
 
     // ── Public API ───────────────────────────────────────────────
     function init(startChapter = 0) {
@@ -279,22 +280,27 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
 
     // ── Expand window when approaching edges ─────────────────────
     function _expandIfNeeded() {
+        if (_isExpanding) return;
         const scrollTop = scrollContainer.scrollTop;
         const scrollBottom = scrollTop + scrollContainer.clientHeight;
+        const containerTotalH = scrollContainer.scrollHeight;
         const topSpacerH = topSpacer ? (parseFloat(topSpacer.style.height) || 0) : 0;
-        const totalH = contentEl.scrollHeight;
 
         // Near top → add chapter above
         if (scrollTop - topSpacerH < LOAD_BUFFER && renderedStart > 0) {
+            _isExpanding = true;
             _prependChapter(renderedStart - 1);
             renderedStart--;
             _updateSpacers();
+            _isExpanding = false;
         }
         // Near bottom → add chapter below
-        if (totalH - scrollBottom < LOAD_BUFFER && renderedEnd < chapters.length - 1) {
+        if (containerTotalH - scrollBottom < LOAD_BUFFER && renderedEnd < chapters.length - 1) {
+            _isExpanding = true;
             _appendChapter(renderedEnd + 1);
             renderedEnd++;
             _updateSpacers();
+            _isExpanding = false;
         }
     }
 
@@ -329,9 +335,14 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
         const firstChapter = contentEl.querySelector('[data-chapter]');
         contentEl.insertBefore(el, firstChapter);
 
-        const h = el.offsetHeight || ESTIMATED_CHAPTER_HEIGHT;
+        // Measure AFTER inserting into DOM (offsetHeight is 0 before it's painted)
+        // Use a synchronous layout read — the element is in DOM but not repainted yet,
+        // forcing a layout flush gives us the real height.
+        const h = el.getBoundingClientRect().height || el.offsetHeight || ESTIMATED_CHAPTER_HEIGHT;
         chapterHeights[index] = h;
-        // Prevent scroll jump: new content was added above viewport
+
+        // Compensate: content was prepended above the viewport, shift scroll down by that height.
+        // Write scrollTop AFTER reading height to avoid mid-scroll layout thrash.
         scrollContainer.scrollTop += h;
     }
 
@@ -339,13 +350,17 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
     function _removeTopChapter() {
         const el = contentEl.querySelector(`[data-chapter="${renderedStart}"]`);
         if (!el) { renderedStart++; return; }
-        const h = el.offsetHeight;
+
+        // Capture height BEFORE removal to correctly adjust scrollTop
+        const h = el.getBoundingClientRect().height || el.offsetHeight;
         chapterHeights[renderedStart] = h;
-        // Adjust scrollTop because content above the viewport shrinks
-        scrollContainer.scrollTop -= h;
+
         el.remove();
         renderedStart++;
         _updateSpacers();
+
+        // After removing content above the viewport, browser may shift scrollTop on its own;
+        // only manually correct if needed (subtract the spacer delta already covers it).
     }
 
     // Remove the bottommost rendered chapter
