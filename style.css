@@ -1886,3 +1886,35 @@ body {
     opacity: 1;
   }
 }
+
+/* ── SCROLL MODE CHAPTER TRANSITION ────────────────────────── */
+@keyframes chapterFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chapterFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.chapter-exit {
+  animation: chapterFadeOut 0.16s ease forwards;
+  pointer-events: none;
+}
+
+.chapter-enter {
+  animation: chapterFadeIn 0.28s ease forwards;
+}

@@ -273,7 +273,7 @@ async function handleEpubFile(file) {
         const saved = loadAutoBookmark();
 
         if (State.mode === 'continuous') {
-            State.continuousReader = createVirtualContinuousReader(DOM.scrollContainer, DOM.scrollContent);
+            State.continuousReader = createContinuousReader(DOM.scrollContainer, DOM.scrollContent);
             State.continuousReader.init(saved ? Math.min(saved.chapterIndex || 0, State.chapters.length - 1) : 0);
             if (saved) showToast('📖 Resumed from where you left off');
 

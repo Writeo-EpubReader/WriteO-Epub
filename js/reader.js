@@ -1,8 +1,8 @@
 /* ── js/reader.js ── All three reading modes ─────────────────
    Modes:
-     scroll     – chapter-by-chapter with prev/next        (existing)
-     book       – paginated with slide animation           (existing)
-     continuous – virtualized infinite scroll              (NEW)
+     scroll     – chapter-by-chapter with prev/next
+     book       – paginated with slide animation
+     continuous – simple append-on-demand (no virtualization)
    ──────────────────────────────────────────────────────────── */
 'use strict';
 
@@ -25,7 +25,7 @@ function fixLinks(container) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHAPTER LOADER  (entry point for all modes)
+// CHAPTER LOADER  (entry point for scroll & book modes)
 // ═══════════════════════════════════════════════════════════════
 async function loadChapter(index, saveAuto = true) {
     if (!State.chapters.length) { logWarn('reader', 'loadChapter called but no chapters'); return; }
@@ -37,19 +37,29 @@ async function loadChapter(index, saveAuto = true) {
     log('reader', `Loading chapter ${index}: "${chapter.title}" (mode: ${State.mode})`);
 
     if (State.mode === 'scroll') {
-        // Disable smooth scrolling temporarily so scrollTop=0 is instant (not animated)
+        // Temporarily disable smooth scroll so the jump to top is instant, not animated
         const prevBehavior = DOM.scrollContainer.style.scrollBehavior;
         DOM.scrollContainer.style.scrollBehavior = 'auto';
+
+        // Fade-out → swap content → fade-in
+        DOM.scrollContent.classList.add('chapter-exit');
+        await new Promise(r => setTimeout(r, 160));
+
         DOM.scrollContent.innerHTML = chapter.content;
         fixLinks(DOM.scrollContent);
         DOM.scrollContainer.scrollTop = 0;
-        // Restore after a frame so normal smooth scrolling resumes for user-driven scrolls
+        DOM.scrollContent.classList.remove('chapter-exit');
+        DOM.scrollContent.classList.add('chapter-enter');
+        DOM.scrollContent.addEventListener('animationend', () => {
+            DOM.scrollContent.classList.remove('chapter-enter');
+        }, { once: true });
+
         requestAnimationFrame(() => { DOM.scrollContainer.style.scrollBehavior = prevBehavior; });
-        log('reader', 'Chapter rendered to scroll-content, length:', chapter.content.length);
+
     } else if (State.mode === 'book') {
         await repaginateAndShow();
     }
-    // continuous mode is handled entirely inside VirtualContinuousReader
+    // continuous mode is managed entirely by the continuous reader instance
 
     updateNav();
     updateProgress();
@@ -62,7 +72,6 @@ async function setMode(mode) {
     if (State.mode === mode) return;
     log('reader', 'setMode:', mode);
 
-    // Tear down current continuous reader if leaving that mode
     if (State.mode === 'continuous' && State.continuousReader) {
         State.continuousReader.destroy();
         State.continuousReader = null;
@@ -72,7 +81,6 @@ async function setMode(mode) {
     saveSettings();
     applySettings();
 
-    // Show/hide containers
     const showScroll = (mode === 'scroll' || mode === 'continuous');
     DOM.scrollContainer.style.display = showScroll ? '' : 'none';
     DOM.bookContainer.style.display = mode === 'book' ? '' : 'none';
@@ -84,13 +92,13 @@ async function setMode(mode) {
     } else if (mode === 'book') {
         await repaginateAndShow();
     } else if (mode === 'continuous') {
-        State.continuousReader = createVirtualContinuousReader(DOM.scrollContainer, DOM.scrollContent);
+        State.continuousReader = createContinuousReader(DOM.scrollContainer, DOM.scrollContent);
         State.continuousReader.init(State.currentChapter);
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SCROLL MODE
+// SCROLL MODE – scroll event
 // ═══════════════════════════════════════════════════════════════
 function onScrollEvent() {
     updateProgress();
@@ -180,20 +188,18 @@ function turnPage(dir) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CONTINUOUS MODE  –  VirtualContinuousReader
+// CONTINUOUS MODE  – simple append-on-demand reader
 // ═══════════════════════════════════════════════════════════════
-function createVirtualContinuousReader(scrollContainer, contentEl) {
+function createContinuousReader(scrollContainer, contentEl) {
 
     const chapters = State.chapters;
-    const chapterHeights = new Array(chapters.length).fill(0);  // measured heights
-    let renderedStart = 0;
-    let renderedEnd = -1;
-    let topSpacer = null;
-    let bottomSpacer = null;
+    let loadedUpTo = -1;   // index of the last chapter appended to DOM
     let destroyed = false;
-    const SCROLL_DEBOUNCE = 100;   // ms
-    const LOAD_BUFFER = 800;        // px from edge before loading next chunk
-    let _isExpanding = false;       // prevent concurrent expand calls
+    let _scrollTimer = null;
+    let _loading = false;  // debounce guard while appending
+
+    const SCROLL_DEBOUNCE = 80;   // ms
+    const LOAD_BUFFER = 1400; // px from bottom before we load next chapter
 
     // ── Public API ───────────────────────────────────────────────
     function init(startChapter = 0) {
@@ -201,56 +207,47 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
         contentEl.innerHTML = '';
         contentEl.style.display = '';
         scrollContainer.classList.add('continuous-mode');
+        loadedUpTo = -1;
+        _loading = false;
 
-        topSpacer = _spacer('top-spacer');
-        contentEl.appendChild(topSpacer);
+        // Pre-load from chapter 0 up to startChapter + a small look-ahead
+        const preloadEnd = Math.min(startChapter + 2, chapters.length - 1);
+        for (let i = 0; i <= preloadEnd; i++) _appendChapter(i);
+        loadedUpTo = preloadEnd;
 
-        bottomSpacer = _spacer('bottom-spacer');
-        contentEl.appendChild(bottomSpacer);
-
-        State.currentChapter = startChapter;
-        // Render an initial window centred on startChapter
-        const winStart = Math.max(0, startChapter - VIRTUAL_WINDOW);
-        const winEnd = Math.min(chapters.length - 1, startChapter + VIRTUAL_WINDOW * 2);
-
-        for (let i = winStart; i <= winEnd; i++) _appendChapter(i);
-        renderedStart = winStart;
-        renderedEnd = winEnd;
-
-        _updateSpacers();
         scrollContainer.addEventListener('scroll', _onScrollDebounced, { passive: true });
 
-        // Scroll to the start chapter — wait two frames so layout heights are settled
+        // Scroll to startChapter after two frames (layout must settle first)
         requestAnimationFrame(() => requestAnimationFrame(() => {
             const target = contentEl.querySelector(`[data-chapter="${startChapter}"]`);
             if (target) {
-                const offset = target.offsetTop - contentEl.offsetTop;
-                scrollContainer.scrollTop = offset;
+                scrollContainer.scrollTop = target.offsetTop;
             }
         }));
     }
 
     function destroy() {
         destroyed = true;
+        clearTimeout(_scrollTimer);
         scrollContainer.removeEventListener('scroll', _onScrollDebounced);
         scrollContainer.classList.remove('continuous-mode');
         contentEl.innerHTML = '';
+        loadedUpTo = -1;
     }
 
     function scrollToChapter(index) {
-        const el = contentEl.querySelector(`[data-chapter="${index}"]`);
-        if (el) {
-            scrollContainer.scrollTop = el.offsetTop - contentEl.offsetTop;
-        } else {
-            // chapter not in DOM, re-init at that chapter
-            destroy();
-            destroyed = false;
-            init(index);
+        // Ensure all chapters up to the requested one are loaded
+        if (index > loadedUpTo) {
+            for (let i = loadedUpTo + 1; i <= Math.min(index, chapters.length - 1); i++) {
+                _appendChapter(i);
+            }
+            loadedUpTo = Math.min(index, chapters.length - 1);
         }
+        const el = contentEl.querySelector(`[data-chapter="${index}"]`);
+        if (el) scrollContainer.scrollTop = el.offsetTop;
     }
 
     // ── Scroll handler ───────────────────────────────────────────
-    let _scrollTimer = null;
     function _onScrollDebounced() {
         if (destroyed) return;
         clearTimeout(_scrollTimer);
@@ -261,22 +258,20 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
         if (destroyed) return;
         _detectCurrentChapter();
         _expandIfNeeded();
-        _collapseIfNeeded();
         updateProgress();
         clearTimeout(_onScroll._auto);
         _onScroll._auto = setTimeout(saveAutoBookmark, 600);
     }
 
-    // ── Which chapter is visible? ────────────────────────────────
+    // ── Which chapter is currently in view? ──────────────────────
     function _detectCurrentChapter() {
         const scrollTop = scrollContainer.scrollTop;
-        const viewCenter = scrollTop + scrollContainer.clientHeight * 0.35;
+        const viewCentre = scrollTop + scrollContainer.clientHeight * 0.35;
         const blocks = contentEl.querySelectorAll('[data-chapter]');
         let current = State.currentChapter;
 
         for (const el of blocks) {
-            const top = el.offsetTop - contentEl.offsetTop;
-            if (top <= viewCenter) current = parseInt(el.dataset.chapter);
+            if (el.offsetTop <= viewCentre) current = parseInt(el.dataset.chapter);
             else break;
         }
 
@@ -287,151 +282,37 @@ function createVirtualContinuousReader(scrollContainer, contentEl) {
         }
     }
 
-    // ── Expand window when approaching edges ─────────────────────
+    // ── Append next chapter when near the bottom ─────────────────
     function _expandIfNeeded() {
-        if (_isExpanding) return;
-        _isExpanding = true;
+        if (_loading) return;
+        if (loadedUpTo >= chapters.length - 1) return; // all chapters loaded
 
-        // Loop: keep adding chapters until the buffer is satisfied in BOTH directions.
-        // A single scroll event may need multiple chapters to fill the screen.
-        let changed = true;
-        while (changed) {
-            changed = false;
-            const scrollTop = scrollContainer.scrollTop;
-            const scrollBottom = scrollTop + scrollContainer.clientHeight;
-            const totalH = scrollContainer.scrollHeight;
-            const topSpacerH = topSpacer ? (parseFloat(topSpacer.style.height) || 0) : 0;
+        const distanceFromBottom = scrollContainer.scrollHeight
+            - scrollContainer.scrollTop
+            - scrollContainer.clientHeight;
 
-            // Near top → prepend
-            if (scrollTop - topSpacerH < LOAD_BUFFER && renderedStart > 0) {
-                _prependChapter(renderedStart - 1);
-                renderedStart--;
-                _updateSpacers();
-                changed = true;
-            }
-
-            // Re-read after potential prepend
-            const newTotalH = scrollContainer.scrollHeight;
-            const newScrollBottom = scrollContainer.scrollTop + scrollContainer.clientHeight;
-
-            // Near bottom → append
-            if (newTotalH - newScrollBottom < LOAD_BUFFER && renderedEnd < chapters.length - 1) {
-                _appendChapter(renderedEnd + 1);
-                renderedEnd++;
-                _updateSpacers();
-                changed = true;
-            }
-        }
-
-        _isExpanding = false;
-    }
-
-    // ── Collapse chapters far from view ──────────────────────────
-    function _collapseIfNeeded() {
-        const scrollTop = scrollContainer.scrollTop;
-        const scrollBottom = scrollTop + scrollContainer.clientHeight;
-
-        // Remove chapters too far above
-        while (renderedStart < State.currentChapter - VIRTUAL_WINDOW) {
-            _removeTopChapter();
-        }
-        // Remove chapters too far below
-        while (renderedEnd > State.currentChapter + VIRTUAL_WINDOW) {
-            _removeBottomChapter();
+        if (distanceFromBottom < LOAD_BUFFER) {
+            _loading = true;
+            _appendChapter(loadedUpTo + 1);
+            loadedUpTo++;
+            _loading = false;
         }
     }
 
-    // ── DOM manipulation helpers ──────────────────────────────────
-
-    // Append a chapter block before the bottom spacer
+    // ── Build & insert a chapter element ─────────────────────────
     function _appendChapter(index) {
-        const el = _makeChapterEl(index);
-        contentEl.insertBefore(el, bottomSpacer);
-        // Measure & store height
-        chapterHeights[index] = el.offsetHeight || ESTIMATED_CHAPTER_HEIGHT;
-    }
-
-    // Prepend a chapter block after the top spacer — adjust scrollTop to prevent jump
-    function _prependChapter(index) {
-        const el = _makeChapterEl(index);
-        const firstChapter = contentEl.querySelector('[data-chapter]');
-        contentEl.insertBefore(el, firstChapter);
-
-        // Measure AFTER inserting into DOM (offsetHeight is 0 before it's painted)
-        // Use a synchronous layout read — the element is in DOM but not repainted yet,
-        // forcing a layout flush gives us the real height.
-        const h = el.getBoundingClientRect().height || el.offsetHeight || ESTIMATED_CHAPTER_HEIGHT;
-        chapterHeights[index] = h;
-
-        // Compensate: content was prepended above the viewport, shift scroll down by that height.
-        // Write scrollTop AFTER reading height to avoid mid-scroll layout thrash.
-        scrollContainer.scrollTop += h;
-    }
-
-    // Remove the topmost rendered chapter
-    function _removeTopChapter() {
-        const el = contentEl.querySelector(`[data-chapter="${renderedStart}"]`);
-        if (!el) { renderedStart++; return; }
-
-        // Read height and current scrollTop BEFORE removal
-        const h = el.getBoundingClientRect().height || el.offsetHeight;
-        chapterHeights[renderedStart] = h;
-        const scrollBefore = scrollContainer.scrollTop;
-
-        el.remove();
-        renderedStart++;
-        _updateSpacers(); // spacer grows by h, so net page height stays the same if heights match
-
-        // Some browsers (without good overflow-anchor) will shift the viewport.
-        // Re-anchor by restoring scrollTop to what it was before removal.
-        // The spacer height increase compensates for the lost DOM height.
-        scrollContainer.scrollTop = scrollBefore;
-    }
-
-    // Remove the bottommost rendered chapter
-    function _removeBottomChapter() {
-        const el = contentEl.querySelector(`[data-chapter="${renderedEnd}"]`);
-        if (!el) { renderedEnd--; return; }
-        chapterHeights[renderedEnd] = el.offsetHeight;
-        el.remove();
-        renderedEnd--;
-        _updateSpacers();
-    }
-
-    // Recalculate spacer heights
-    function _updateSpacers() {
-        let topH = 0;
-        for (let i = 0; i < renderedStart; i++) {
-            topH += chapterHeights[i] || ESTIMATED_CHAPTER_HEIGHT;
-        }
-        let botH = 0;
-        for (let i = renderedEnd + 1; i < chapters.length; i++) {
-            botH += chapterHeights[i] || ESTIMATED_CHAPTER_HEIGHT;
-        }
-        if (topSpacer) topSpacer.style.height = topH + 'px';
-        if (bottomSpacer) bottomSpacer.style.height = botH + 'px';
-    }
-
-    // Build the chapter DOM element
-    function _makeChapterEl(index) {
         const c = chapters[index];
+        if (!c) return;
         const div = document.createElement('div');
         div.className = 'chapter-block reader-content';
         div.dataset.chapter = index;
         div.innerHTML = `
-      <div class="chapter-divider">
-        <span class="chapter-divider-label">${c.title || 'Chapter ' + (index + 1)}</span>
-      </div>
-      ${c.content}`;
+            <div class="chapter-divider">
+                <span class="chapter-divider-label">${c.title || 'Chapter ' + (index + 1)}</span>
+            </div>
+            ${c.content}`;
         fixLinks(div);
-        return div;
-    }
-
-    function _spacer(cls) {
-        const div = document.createElement('div');
-        div.className = `virtual-spacer ${cls}`;
-        div.style.height = '0px';
-        return div;
+        contentEl.appendChild(div);
     }
 
     return { init, destroy, scrollToChapter };
