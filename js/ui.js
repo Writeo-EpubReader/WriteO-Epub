@@ -40,6 +40,7 @@ function goHome() {
     closePanel('settings');
     closePanel('toc');
     loadRecentBooks();
+    loadGlobalBookmarksUI();
     stopAutoHideBar();
 }
 

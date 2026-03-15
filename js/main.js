@@ -97,6 +97,8 @@ function populateDOM() {
     // Welcome
     DOM.recentBooksSection = $('recent-books-section');
     DOM.recentBooksList = $('recent-books-list');
+    DOM.globalBookmarksSection = $('global-bookmarks-section');
+    DOM.globalBookmarksList = $('global-bookmarks-list');
 
     // Misc
     DOM.toast = $('toast');
@@ -113,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     applySettings();
     loadRecentBooks();
+    loadGlobalBookmarksUI();
     restoreLastBook();
     bindEvents();
 });

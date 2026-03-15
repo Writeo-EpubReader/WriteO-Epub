@@ -91,9 +91,18 @@
                 </label>
                 <input type="file" id="file-input" accept=".epub" style="display:none" />
 
-                <div id="recent-books-section" class="recent-books-section" style="display:none">
-                    <p class="recent-label">Continue reading</p>
-                    <div id="recent-books-list" class="recent-books-list"></div>
+                <div class="welcome-history" style="display:flex; flex-wrap:wrap; gap: 1.5rem; text-align: left; margin-top: 2rem; justify-content: center; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    
+                    <div id="recent-books-section" class="recent-books-section" style="display:none; flex: 1; min-width: 250px;">
+                        <p class="recent-label">Recent Books</p>
+                        <div id="recent-books-list" class="recent-books-list"></div>
+                    </div>
+
+                    <div id="global-bookmarks-section" class="recent-books-section" style="display:none; flex: 1; min-width: 250px;">
+                        <p class="recent-label">Your Bookmarks</p>
+                        <div id="global-bookmarks-list" class="recent-books-list"></div>
+                    </div>
+
                 </div>
             </div>
 

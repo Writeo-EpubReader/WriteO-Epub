@@ -158,3 +158,48 @@ function loadRecentBooks() {
         });
     } catch (_) { DOM.recentBooksSection.style.display = 'none'; }
 }
+
+function loadGlobalBookmarksUI() {
+    if (!DOM.globalBookmarksSection) return;
+    try {
+        const bookmarks = loadBookmarks();
+        if (!bookmarks || !bookmarks.length) { 
+            DOM.globalBookmarksSection.style.display = 'none'; 
+            return; 
+        }
+        
+        DOM.globalBookmarksSection.style.display = '';
+        DOM.globalBookmarksList.innerHTML = '';
+        
+        // Show only the 5 most recent bookmarks on the home screen
+        const recentBookmarks = [...bookmarks].reverse().slice(0, 5);
+        
+        recentBookmarks.forEach(bm => {
+            const btn = document.createElement('button');
+            btn.className = 'recent-book-item';
+            
+            const d = new Date(bm.timestamp);
+            const timeStr = `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+            
+            btn.innerHTML = `
+        <span class="recent-book-icon">🔖</span>
+        <div class="recent-book-info">
+          <h4>${bm.bookTitle || 'Unknown Book'}</h4>
+          <p>${bm.chapterTitle} · <span style="font-size: 0.8em; opacity: 0.8;">${timeStr}</span></p>
+        </div>`;
+            
+            btn.addEventListener('click', () => {
+                if (bm.bookId === State.bookId) {
+                    showReader();
+                    goToBookmark(bm); // Jump to it immediately
+                } else {
+                    showToast(`Please open "${bm.bookTitle}" to load this bookmark.`);
+                    State.pendingBookmark = bm;
+                    DOM.fileInput.click();
+                }
+            });
+            
+            DOM.globalBookmarksList.appendChild(btn);
+        });
+    } catch (_) { DOM.globalBookmarksSection.style.display = 'none'; }
+}

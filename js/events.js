@@ -288,7 +288,7 @@ async function handleEpubFile(file) {
         }
 
         if (State.mode === 'continuous') {
-            State.continuousReader = createVirtualContinuousReader(DOM.scrollContainer, DOM.scrollContent);
+            State.continuousReader = createContinuousReader(DOM.scrollContainer, DOM.scrollContent);
             State.continuousReader.init(target ? Math.min(target.chapterIndex || 0, State.chapters.length - 1) : 0);
             if (target) showToast(isPending && !target.auto ? '🔖 Jumped to bookmark' : '📖 Resumed from where you left off');
 
