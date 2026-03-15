@@ -270,22 +270,37 @@ async function handleEpubFile(file) {
         renderBookmarksList();
 
         // ── Resume position ───────────────────────────────────────
-        const saved = loadAutoBookmark();
+        let target = loadAutoBookmark();
+        let isPending = false;
+
+        if (State.pendingBookmark) {
+            if (State.pendingBookmark.bookId === State.bookId) {
+                target = State.pendingBookmark;
+                isPending = true;
+                log('events', 'Resuming from pending bookmark', target);
+            } else {
+                showToast('⚠️ The selected file does not match the bookmark.');
+                logWarn('events', 'Pending bookmark bookId mismatch', { expected: State.pendingBookmark.bookId, got: State.bookId });
+            }
+            State.pendingBookmark = null;
+        } else {
+            log('events', 'Auto-bookmark for this book:', target);
+        }
 
         if (State.mode === 'continuous') {
-            State.continuousReader = createContinuousReader(DOM.scrollContainer, DOM.scrollContent);
-            State.continuousReader.init(saved ? Math.min(saved.chapterIndex || 0, State.chapters.length - 1) : 0);
-            if (saved) showToast('📖 Resumed from where you left off');
+            State.continuousReader = createVirtualContinuousReader(DOM.scrollContainer, DOM.scrollContent);
+            State.continuousReader.init(target ? Math.min(target.chapterIndex || 0, State.chapters.length - 1) : 0);
+            if (target) showToast(isPending && !target.auto ? '🔖 Jumped to bookmark' : '📖 Resumed from where you left off');
 
-        } else if (saved && saved.chapterIndex >= 0 && saved.chapterIndex < State.chapters.length) {
-            await loadChapter(saved.chapterIndex, false);
+        } else if (target && target.chapterIndex >= 0 && target.chapterIndex < State.chapters.length) {
+            await loadChapter(target.chapterIndex, false);
             if (State.mode === 'scroll') {
-                requestAnimationFrame(() => { DOM.scrollContainer.scrollTop = saved.scrollY || 0; });
+                requestAnimationFrame(() => { DOM.scrollContainer.scrollTop = target.scrollY || 0; });
             } else if (State.mode === 'book') {
-                State.currentPage = saved.page || 0;
+                State.currentPage = target.page || 0;
                 displayPage();
             }
-            showToast('📖 Resumed from where you left off');
+            showToast(isPending && !target.auto ? '🔖 Jumped to bookmark' : '📖 Resumed from where you left off');
 
         } else {
             await loadChapter(0);

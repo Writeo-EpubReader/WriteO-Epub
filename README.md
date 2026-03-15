@@ -81,7 +81,6 @@ WriteO-Epub/
 ├── index.html          # Main app shell & HTML
 ├── about.html          # About WriteO page
 ├── style.css           # All styles and themes
-├── app.js              # Legacy monolith (kept for reference)
 └── js/
     ├── idb.js          # IndexedDB helpers (book persistence)
     ├── state.js        # Global app state

@@ -4,12 +4,13 @@
 function getBookmarksKey() { return State.bookId + '_bookmarks'; }
 function getAutoKey() { return State.bookId + '_auto'; }
 
+// ── Global Bookmarks ──────────────────────────────────────────
 function loadBookmarks() {
-    try { return JSON.parse(localStorage.getItem(getBookmarksKey()) || '[]'); }
+    try { return JSON.parse(localStorage.getItem('lumina_all_bookmarks') || '[]'); }
     catch (_) { return []; }
 }
 function saveBookmarks() {
-    localStorage.setItem(getBookmarksKey(), JSON.stringify(State.bookmarks));
+    localStorage.setItem('lumina_all_bookmarks', JSON.stringify(State.bookmarks));
 }
 
 // ── Auto-bookmark ─────────────────────────────────────────────
@@ -40,6 +41,8 @@ function addManualBookmark() {
     const chapter = State.chapters[State.currentChapter];
     const bm = {
         id: Date.now(),
+        bookId: State.bookId,
+        bookTitle: State.bookTitle,
         chapterIndex: State.currentChapter,
         chapterTitle: chapter ? chapter.title : `Chapter ${State.currentChapter + 1}`,
         scrollY: DOM.scrollContainer ? DOM.scrollContainer.scrollTop : 0,
@@ -58,6 +61,13 @@ function addManualBookmark() {
 }
 
 function goToBookmark(bm) {
+    if (bm.bookId && bm.bookId !== State.bookId) {
+        showToast(`Please open "${bm.bookTitle}" to load this bookmark.`);
+        State.pendingBookmark = bm;
+        if (DOM.fileInput) DOM.fileInput.click();
+        return;
+    }
+
     closePanel('settings');
     loadChapter(bm.chapterIndex, false).then(() => {
         if (State.mode === 'scroll') {
@@ -98,6 +108,7 @@ function renderBookmarksList() {
         const d = new Date(bm.timestamp);
         item.innerHTML = `
       <div class="bookmark-item-info">
+        <strong>${bm.bookTitle || 'Unknown Book'}</strong>
         <span>${bm.chapterTitle}</span>
         <small>${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
       </div>
@@ -135,8 +146,13 @@ function loadRecentBooks() {
           <p>Chapter ${(book.lastChapter || 0) + 1} · Auto-saved</p>
         </div>`;
             btn.addEventListener('click', () => {
-                showToast('Re-open the EPUB file to continue reading.');
-                DOM.fileInput.click();
+                if (book.id === State.bookId) {
+                    showReader();
+                } else {
+                    showToast(`Please open "${book.title}" to continue reading.`);
+                    State.pendingBookmark = { bookId: book.id, chapterIndex: book.lastChapter, auto: true };
+                    DOM.fileInput.click();
+                }
             });
             DOM.recentBooksList.appendChild(btn);
         });
