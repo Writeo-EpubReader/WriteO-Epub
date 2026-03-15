@@ -86,12 +86,14 @@ function deleteBookmark(id) {
     State.bookmarks = State.bookmarks.filter(b => b.id !== id);
     saveBookmarks();
     renderBookmarksList();
+    loadGlobalBookmarksUI(); // refresh home screen list
 }
 
 function clearAllBookmarks() {
     State.bookmarks = [];
     saveBookmarks();
     renderBookmarksList();
+    loadGlobalBookmarksUI(); // refresh home screen list
     showToast('🗑️ Bookmarks cleared');
 }
 
@@ -189,11 +191,16 @@ function loadGlobalBookmarksUI() {
         </div>`;
             
             btn.addEventListener('click', () => {
-                if (bm.bookId === State.bookId) {
+                // If this bookmark's book is already the loaded one, jump straight in
+                if (bm.bookId && bm.bookId === State.bookId) {
                     showReader();
-                    goToBookmark(bm); // Jump to it immediately
+                    // Small delay so reader is visible before scrolling
+                    setTimeout(() => goToBookmark(bm), 80);
                 } else {
-                    showToast(`Please open "${bm.bookTitle}" to load this bookmark.`);
+                    // No matching book loaded — ask for the file; pendingBookmark
+                    // will be consumed by handleEpubFile once the user picks the file
+                    const label = bm.bookTitle || 'this book';
+                    showToast(`Please open "${label}" to load this bookmark.`);
                     State.pendingBookmark = bm;
                     DOM.fileInput.click();
                 }
